@@ -1,7 +1,7 @@
 .PHONY: test cover build
 
-CHART_NAME=cypress-executor
-NAME ?= cypress
+CHART_NAME=playwright-executor
+NAME ?= playwright
 BIN_DIR ?= $(HOME)/bin
 GITHUB_TOKEN ?= "SET_ME"
 USER ?= $(USER)

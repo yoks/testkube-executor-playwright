@@ -1,4 +1,4 @@
-module github.com/kubeshop/testkube-executor-cypress
+module github.com/yoks/testkube-executor-playwright
 
 go 1.18
 

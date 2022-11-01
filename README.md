@@ -1,8 +1,10 @@
 ![Testkube Logo](https://raw.githubusercontent.com/kubeshop/testkube/main/assets/testkube-color-gray.png)
                                                            
-# Welcome to testkube Cypress Executor
+# Welcome to testkube Playwright Executor
 
-Kubetest Cypress Executor is test executor for [testkube](https://testkube.io)
+Based on https://github.com/kubeshop/testkube-executor-cypress
+
+Kubetest Playwright Executor is test executor for [testkube](https://testkube.io)
 
 # Issues and enchancements 
 
@@ -18,4 +20,4 @@ Please follow to main testkube repository for reporting any [issues](https://git
 
 ## API 
 
-Cypress executor implements [testkube OpenAPI for executors](https://kubeshop.github.io/testkube/openapi/#operations-tag-executor) (look at executor tag)
+Playwright executor implements [testkube OpenAPI for executors](https://kubeshop.github.io/testkube/openapi/#operations-tag-executor) (look at executor tag)

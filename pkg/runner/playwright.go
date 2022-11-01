@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	junit "github.com/joshdk/go-junit"
 	"github.com/kelseyhightower/envconfig"
@@ -30,14 +29,14 @@ type Params struct {
 	Datadir         string // RUNNER_DATADIR
 }
 
-func NewCypressRunner() (*CypressRunner, error) {
+func NewPlaywrightRunner() (*PlaywrightRunner, error) {
 	var params Params
 	err := envconfig.Process("runner", &params)
 	if err != nil {
 		return nil, err
 	}
 
-	runner := &CypressRunner{
+	runner := &PlaywrightRunner{
 		Fetcher: content.NewFetcher(""),
 		Scraper: scraper.NewMinioScraper(
 			params.Endpoint,
@@ -53,14 +52,14 @@ func NewCypressRunner() (*CypressRunner, error) {
 	return runner, nil
 }
 
-// CypressRunner - implements runner interface used in worker to start test execution
-type CypressRunner struct {
+// PlaywrightRunner - implements runner interface used in worker to start test execution
+type PlaywrightRunner struct {
 	Params  Params
 	Fetcher content.ContentFetcher
 	Scraper scraper.Scraper
 }
 
-func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.ExecutionResult, err error) {
+func (r *PlaywrightRunner) Run(execution testkube.Execution) (result testkube.ExecutionResult, err error) {
 	// make some validation
 	err = r.Validate(execution)
 	if err != nil {
@@ -76,11 +75,11 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 	if execution.Content.IsFile() {
 		output.PrintEvent("using file", execution)
 
-		// TODO add cypress project structure
+		// TODO add playwright project structure
 		// TODO checkout this repo with `skeleton` path
-		// TODO overwrite skeleton/cypress/integration/test.js
+		// TODO overwrite skeleton/playwright/integration/test.js
 		//      file with execution content git file
-		return result, fmt.Errorf("passing cypress test as single file not implemented yet")
+		return result, fmt.Errorf("passing playwright test as single file not implemented yet")
 	}
 
 	runPath := filepath.Join(r.Params.Datadir, "repo", execution.Content.Repository.Path)
@@ -89,7 +88,7 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 	}
 
 	if _, err := os.Stat(filepath.Join(runPath, "package.json")); err == nil {
-		// be gentle to different cypress versions, run from local npm deps
+		// be gentle to different playwright versions, run from local npm deps
 		out, err := executor.Run(runPath, "npm", nil, "install")
 		if err != nil {
 			return result, fmt.Errorf("npm install error: %w\n\n%s", err, out)
@@ -100,18 +99,18 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 			return result, fmt.Errorf("npm init error: %w\n\n%s", err, out)
 		}
 
-		out, err = executor.Run(runPath, "npm", nil, "install", "cypress", "--save-dev")
+		out, err = executor.Run(runPath, "npm", nil, "install", "playwright", "--save-dev")
 		if err != nil {
-			return result, fmt.Errorf("npm install cypress error: %w\n\n%s", err, out)
+			return result, fmt.Errorf("npm install playwright error: %w\n\n%s", err, out)
 		}
 	} else {
 		return result, fmt.Errorf("checking package.json file: %w", err)
 	}
 
-	// handle project local Cypress version install (`Cypress` app)
-	out, err := executor.Run(runPath, "./node_modules/cypress/bin/cypress", nil, "install")
+	// handle project local Playwright version install (`Playwright` app)
+	out, err := executor.Run(runPath, "./node_modules/.bin/playwright", nil, "install")
 	if err != nil {
-		return result, fmt.Errorf("cypress binary install error: %w\n\n%s", err, out)
+		return result, fmt.Errorf("playwright binary install error: %w\n\n%s", err, out)
 	}
 
 	// convert executor env variables to os env variables
@@ -123,15 +122,12 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 
 	envManager := secret.NewEnvManagerWithVars(execution.Variables)
 	envManager.GetVars(execution.Variables)
-	envVars := make([]string, 0, len(execution.Variables))
-	for _, value := range execution.Variables {
-		envVars = append(envVars, fmt.Sprintf("%s=%s", value.Name, value.Value))
-	}
 
 	projectPath := filepath.Join(r.Params.Datadir, "repo", execution.Content.Repository.Path)
 	junitReportPath := filepath.Join(projectPath, "results/junit.xml")
-	args := []string{"run", "--reporter", "junit", "--reporter-options", fmt.Sprintf("mochaFile=%s,toConsole=false", junitReportPath),
-		"--env", strings.Join(envVars, ",")}
+
+	os.Setenv("PLAYWRIGHT_JUNIT_OUTPUT_NAME", junitReportPath)
+	args := []string{"test", "--reporter", "junit"}
 
 	if execution.Content.Repository.WorkingDir != "" {
 		args = append(args, "--project", projectPath)
@@ -140,8 +136,8 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 	// append args from execution
 	args = append(args, execution.Args...)
 
-	// run cypress inside repo directory ignore execution error in case of failed test
-	out, err = executor.Run(runPath, "./node_modules/cypress/bin/cypress", envManager, args...)
+	// run playwright inside repo directory ignore execution error in case of failed test
+	out, err = executor.Run(runPath, "./node_modules/.bin/playwright", envManager, args...)
 	out = envManager.Obfuscate(out)
 	suites, serr := junit.IngestFile(junitReportPath)
 	result = MapJunitToExecutionResults(out, suites)
@@ -149,8 +145,7 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 	// scrape artifacts first even if there are errors above
 	if r.Params.ScrapperEnabled {
 		directories := []string{
-			filepath.Join(projectPath, "cypress/videos"),
-			filepath.Join(projectPath, "cypress/screenshots"),
+			filepath.Join(projectPath, "playwright-report"),
 		}
 		err := r.Scraper.Scrape(execution.Id, directories)
 		if err != nil {
@@ -161,16 +156,16 @@ func (r *CypressRunner) Run(execution testkube.Execution) (result testkube.Execu
 	return result.WithErrors(err, serr), nil
 }
 
-// Validate checks if Execution has valid data in context of Cypress executor
-// Cypress executor runs currently only based on cypress project
-func (r *CypressRunner) Validate(execution testkube.Execution) error {
+// Validate checks if Execution has valid data in context of Playwright executor
+// Playwright executor runs currently only based on playwright project
+func (r *PlaywrightRunner) Validate(execution testkube.Execution) error {
 
 	if execution.Content == nil {
 		return fmt.Errorf("can't find any content to run in execution data: %+v", execution)
 	}
 
 	if execution.Content.Repository == nil {
-		return fmt.Errorf("cypress executor handle only repository based tests, but repository is nil")
+		return fmt.Errorf("playwright executor handle only repository based tests, but repository is nil")
 	}
 
 	if execution.Content.Repository.Branch == "" && execution.Content.Repository.Commit == "" {

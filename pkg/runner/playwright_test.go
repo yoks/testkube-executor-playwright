@@ -22,19 +22,19 @@ func TestRun(t *testing.T) {
 	os.Mkdir(repoDir, 0755)
 	_ = cp.Copy("../../examples", repoDir)
 
-	runner, err := NewCypressRunner()
+	runner, err := NewPlaywrightRunner()
 	if err != nil {
 		t.Fail()
 	}
 
-	repoURI := "https://github.com/kubeshop/testkube-executor-cypress.git"
+	repoURI := "https://github.com/yoks/testkube-executor-playwright.git"
 	result, err := runner.Run(testkube.Execution{
 		Content: &testkube.TestContent{
 			Type_: string(testkube.TestContentTypeGitDir),
 			Repository: &testkube.Repository{
 				Type_:  "git",
 				Uri:    repoURI,
-				Branch: "jacek/feature/json-output",
+				Branch: "main",
 				Path:   "",
 			},
 		},
@@ -53,7 +53,7 @@ func TestRunErrors(t *testing.T) {
 		os.Setenv("RUNNER_DATADIR", "/unknown")
 
 		// given
-		runner, err := NewCypressRunner()
+		runner, err := NewPlaywrightRunner()
 		if err != nil {
 			t.Fail()
 		}

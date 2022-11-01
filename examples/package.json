@@ -1,14 +1,13 @@
 {
-  "name": "cypress-example-test",
+  "name": "examples",
   "version": "1.0.0",
   "description": "",
-  "main": "simple-test.js",
-  "scripts": {
-    "test": "cypress run simple-test.js"
-  },
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "cypress": "^10.4.0"
+    "@playwright/test": "^1.27.1"
   }
 }

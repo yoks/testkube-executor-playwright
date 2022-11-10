@@ -13,7 +13,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	t.Skip("move this test to e2e test suite with valid environment setup")
+	//t.Skip("move this test to e2e test suite with valid environment setup")
 
 	// setup
 	tempDir, _ := os.MkdirTemp("", "*")
@@ -43,7 +43,7 @@ func TestRun(t *testing.T) {
 	fmt.Printf("RESULT: %+v\n", result)
 	fmt.Printf("ERROR:  %+v\n", err)
 
-	t.Fail()
+	//t.Fail()
 
 }
 

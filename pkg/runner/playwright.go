@@ -88,27 +88,27 @@ func (r *PlaywrightRunner) Run(execution testkube.Execution) (result testkube.Ex
 	}
 
 	if _, err := os.Stat(filepath.Join(runPath, "package.json")); err == nil {
-		// be gentle to different playwright versions, run from local npm deps
-		out, err := executor.Run(runPath, "npm", nil, "install")
+		// be gentle to different playwright versions, run from local yarn deps
+		out, err := executor.Run(runPath, "yarn", nil, "install")
 		if err != nil {
-			return result, fmt.Errorf("npm install error: %w\n\n%s", err, out)
+			return result, fmt.Errorf("yarn install error: %w\n\n%s", err, out)
 		}
 	} else if errors.Is(err, os.ErrNotExist) {
-		out, err := executor.Run(runPath, "npm", nil, "init", "--yes")
+		out, err := executor.Run(runPath, "yarn", nil, "init", "--yes")
 		if err != nil {
-			return result, fmt.Errorf("npm init error: %w\n\n%s", err, out)
+			return result, fmt.Errorf("yarn init error: %w\n\n%s", err, out)
 		}
 
-		out, err = executor.Run(runPath, "npm", nil, "install", "playwright", "--save-dev")
+		out, err = executor.Run(runPath, "yarn", nil, "install", "playwright", "--save-dev")
 		if err != nil {
-			return result, fmt.Errorf("npm install playwright error: %w\n\n%s", err, out)
+			return result, fmt.Errorf("yarn install playwright error: %w\n\n%s", err, out)
 		}
 	} else {
 		return result, fmt.Errorf("checking package.json file: %w", err)
 	}
 
 	// handle project local Playwright version install (`Playwright` app)
-	out, err := executor.Run(runPath, "./node_modules/.bin/playwright", nil, "install")
+	out, err := executor.Run(runPath, "yarn", nil, "run", "playwright", "install")
 	if err != nil {
 		return result, fmt.Errorf("playwright binary install error: %w\n\n%s", err, out)
 	}
@@ -127,17 +127,13 @@ func (r *PlaywrightRunner) Run(execution testkube.Execution) (result testkube.Ex
 	junitReportPath := filepath.Join(projectPath, "results/junit.xml")
 
 	os.Setenv("PLAYWRIGHT_JUNIT_OUTPUT_NAME", junitReportPath)
-	args := []string{"test", "--reporter", "junit"}
-
-	if execution.Content.Repository.WorkingDir != "" {
-		args = append(args, "--project", projectPath)
-	}
+	args := []string{"run", "e2e", "--reporter", "junit"}
 
 	// append args from execution
 	args = append(args, execution.Args...)
 
 	// run playwright inside repo directory ignore execution error in case of failed test
-	out, err = executor.Run(runPath, "./node_modules/.bin/playwright", envManager, args...)
+	out, err = executor.Run(runPath, "yarn", envManager, args...)
 	out = envManager.Obfuscate(out)
 	suites, serr := junit.IngestFile(junitReportPath)
 	result = MapJunitToExecutionResults(out, suites)

@@ -9,5 +9,8 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.27.1"
+  },
+  "scripts": {
+    "e2e": "playwright test"
   }
 }

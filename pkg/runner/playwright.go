@@ -123,8 +123,7 @@ func (r *PlaywrightRunner) Run(execution testkube.Execution) (result testkube.Ex
 	envManager := secret.NewEnvManagerWithVars(execution.Variables)
 	envManager.GetVars(execution.Variables)
 
-	projectPath := filepath.Join(r.Params.Datadir, "repo", execution.Content.Repository.Path)
-	junitReportPath := filepath.Join(projectPath, "results/junit.xml")
+	junitReportPath := filepath.Join(runPath, "src/test-results/junit.xml")
 
 	os.Setenv("PLAYWRIGHT_JUNIT_OUTPUT_NAME", junitReportPath)
 	args := []string{"run", "e2e", "--reporter", "junit"}
@@ -139,9 +138,14 @@ func (r *PlaywrightRunner) Run(execution testkube.Execution) (result testkube.Ex
 	result = MapJunitToExecutionResults(out, suites)
 
 	// scrape artifacts first even if there are errors above
-	if r.Params.ScrapperEnabled {
+	if r.Params.ScrapperEnabled && err != nil {
+
+		executor.Run(runPath, "tar", nil, "-czvf", "test-results.tar.gz", "src/test-results")
+		executor.Run(runPath, "mkdir", nil, "test-results")
+		executor.Run(runPath, "mv", nil, "test-results.tar.gz", "test-results/test-results.tar.gz")
+
 		directories := []string{
-			filepath.Join(projectPath, "playwright-report"),
+			filepath.Join(runPath, "test-results"),
 		}
 		err := r.Scraper.Scrape(execution.Id, directories)
 		if err != nil {
